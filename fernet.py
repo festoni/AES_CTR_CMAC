@@ -34,18 +34,54 @@ class Fernet(object):
         return base64.urlsafe_b64encode(os.urandom(32))
 
     def encrypt(self, data):
-        #TODO
 
-        version = b'\x91'
-        t = time.time()
-        timestamp = struct.pack('>Q', t)
+        VERSION = b'\x91'
+        TIMESTAMP = struct.pack('>Q', time.time())
         IV = os.urandom(16)
+        ciphertext = self._AES_CTR_encrypt(data, IV, self._encryption_key)
+        cmac_input = VERSION + TIMESTAMP + IV + ciphertext
+        cmac_length = len(cmac_input)
+        CMAC = self._AES_CMAC_generate(self._signing_key, cmac_input, cmac_length)
 
-        return data
+        token = base64.urlsafe_b64encode(cmac_input + CMAC)
+
+        return token
 
     def decrypt(self, token, timetolive=None):
-        #TODO
-        return token
+
+        # STEP 1
+        ciphertext = base64.urlsafe_b64decode(token)
+
+        version = ciphertext[0] # first 8 bits (1 byte)
+        timestamp = ciphertext[1:9] # next 64 bits (8 bytes)
+        IV = ciphertext[9:25] # next 128 bits (16 bytes)
+        cipher_field = ciphertext[25:-16] # next bits until last 128 bits
+        orig_CMAC = ciphertext[-16:] # last 128 bits(16 bytes)
+
+        # STEP 2
+        if version != b'\x91':
+            raise InvalidToken()
+
+        # STEP 3
+        if timetolive:
+            timestamp = self._bytes_to_integer(timestamp)
+            timenow = int(time.time())
+            age = timenow - timestamp
+            if age < 0 or age > timetolive:
+                raise InvalidToken()
+
+        # STEP 4
+        cmac_input = ciphertext[:-16]
+        cmac_length = len(cmac_input)
+        re_CMAC = self._AES_CMAC_generate(self._signing_key, cmac_input, cmac_length)
+
+        # STEP 5
+        if re_CMAC != orig_CMAC:
+            raise InvalidToken()
+
+        data = self._AES_CTR_decrypt(cipher_field, IV, self._encryption_key)
+
+        return data
 
     def _AES_CTR_encrypt(self, plaintext, iv, key):
         msgs = self._split_into_blocks(plaintext, 16)
