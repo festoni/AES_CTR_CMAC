@@ -30,7 +30,7 @@ class Fernet(object):
         self._backend = backend
 
     @classmethod
-    def generate_key(cls):
+    def generate_key(self):
         return base64.urlsafe_b64encode(os.urandom(32))
 
     def encrypt(self, data):
@@ -83,6 +83,12 @@ class Fernet(object):
 
         return data
 
+    def _AES_ECB(self, plaintext, key):
+        cipher = Cipher(algorithms.AES(key), modes.ECB(), backend=self._backend)
+        encryptor = cipher.encryptor()
+        ciphertext = encryptor.update(plaintext) + encryptor.finalize()
+        return ciphertext
+
     def _AES_CTR_encrypt(self, plaintext, iv, key):
         msgs = self._split_into_blocks(plaintext, 16)
 
@@ -106,25 +112,6 @@ class Fernet(object):
             plaintext.append(self._xor(block, E[:L]))
             ctrblk = self._increment_integer(ctrblk)
         return ''.join(plaintext)
-
-    def _AES_ECB(self, plaintext, key):
-        cipher = Cipher(algorithms.AES(key), modes.ECB(), backend=self._backend)
-        encryptor = cipher.encryptor()
-        ciphertext = encryptor.update(plaintext) + encryptor.finalize()
-        return ciphertext
-
-    def _bytes_to_integer(self, bytearr):
-        to_hex = bytearr.encode('hex')
-        to_int = int(to_hex, 16)
-        return to_int
-
-    def _integer_to_bytes(self, integer):
-        to_hex = "{0:032x}".format(integer)
-        to_bytes = to_hex.decode('hex')
-        return to_bytes
-
-    def _increment_integer(self, x):
-        return (x + 1) % (2**128)
 
     def _generate_subkey(self, key):
         CONST_ZERO = 0x00000000000000000000000000000000
@@ -200,6 +187,23 @@ class Fernet(object):
     def _AES_CMAC_verify(self, K, M, length, T1):
         T2 = self._AES_CMAC_generate(K, M, length)
         return True if T2 == T1 else False
+
+    def _bytes_to_integer(self, bytearr):
+        assert len(bytearr) > 0
+        to_hex = bytearr.encode('hex')
+        to_int = int(to_hex, 16)
+        return to_int
+
+    def _integer_to_bytes(self, integer):
+        assert integer < 2**128-1
+        to_hex = "{0:032x}".format(integer)
+        to_bytes = to_hex.decode('hex')
+        return to_bytes
+
+    def _increment_integer(self, x):
+        assert x < 2**128
+        assert x >= 0
+        return (x + 1) % (2**128)
 
     def _padding(self, x):
         if len(x) < 16:

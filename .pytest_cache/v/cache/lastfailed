@@ -1,4 +1,7 @@
 {
   "poattack.py::test_po_attack": true, 
-  "poattack.py::test_po_attack_2blocks": true
+  "poattack.py::test_po_attack_2blocks": true, 
+  "test_fernet.py::TestFernet::()::test_AES_ECB": true, 
+  "test_fernet.py::TestFernet::()::test_CTR_functionality": true, 
+  "test_fernet.py::TestFernet::()::test_emtpy_bytes": true
 }

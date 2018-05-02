@@ -1,4 +1,13 @@
 [
-  "poattack.py::test_po_attack_2blocks", 
-  "poattack.py::test_po_attack"
+  "test_fernet.py::TestFernet::()::test_Functionality", 
+  "test_fernet.py::TestFernet::()::test_Functionality_extensive", 
+  "test_fernet.py::TestFernet::()::test_xor", 
+  "test_fernet.py::TestFernet::()::test_xor_bad_length", 
+  "test_fernet.py::TestFernet::()::test_integer_bytes_conversion", 
+  "test_fernet.py::TestFernet::()::test_integer_bytes_conversion2", 
+  "test_fernet.py::TestFernet::()::test_big_integer", 
+  "test_fernet.py::TestFernet::()::test_empty_bytes", 
+  "test_fernet.py::TestFernet::()::test_increment_integer", 
+  "test_fernet.py::TestFernet::()::test_CTR_test_vectors", 
+  "test_fernet.py::TestFernet::()::test_CTR_functionality"
 ]

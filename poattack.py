@@ -25,7 +25,6 @@ def po_attack_2blocks(po, ctx):
 
     while len(last_bytes) < len(c1):
         j = len(c0) - len(last_bytes)
-        c0 = list(c0)
 
         # STEP 1 and 2
         r = list(os.urandom(len(c0[:j]))) + last_bytes
@@ -37,12 +36,14 @@ def po_attack_2blocks(po, ctx):
             assert i < 256
             r_ = r[:]
             r_[j-1] = chr(ord(r_[j-1]) ^ i)
-            if po.decrypt(''.join(r_)+c1):
+            if po.decrypt(c0 + ''.join(r_)+c1):
                 break
             i += 1
+        print i,
 
         res = chr(ord(r[j-1]) ^ i ^ (len(r) - 1 - j + 2))
         last_bytes.insert(0, res)
+    print
 
     msg = ''.join(last_bytes)
     print(len(msg))
@@ -87,32 +88,10 @@ def _po_attack_last_bytes(po, c0_, c1):
         idx = len(c0)-n-1
         r = c0[:]
         r[idx] = chr(ord(r[idx]) ^ 1)
-        if not po.decrypt(''.join(r)+c1):
+        if not po.decrypt(c0_ + ''.join(r)+c1):
             print("here2")
             return _xor_last_bytes(c0, idx, n)[-idx:]
     return chr(ord(c0[-1]) ^ 1)
-
-    '''
-    r1 r2 r3 r4 r5 r6
-    b = 6
-    n = 6 to 2
-
-    6: 6-6+1 = 1
-    5: 6-5+1 = 2
-    4: 6-4+1 = 3
-    3: 6-3+1 = 4
-    2: 6-2+1 = 5
-
-    a0 a1 a2 a3 a4 a5
-    len(a) = 6
-    b = 5
-    n = 5 to 1
-    5: 6-5-1 = 0
-    4: 6-4-1 = 1
-    3: 6-3-1 = 2
-    2: 6-2-1 = 3
-    1: 6-1-1 = 4
-    '''
 
 def _integer_to_bytes(integer):
     to_hex = "{0:032x}".format(integer)
@@ -129,7 +108,7 @@ def _xor_last_bytes(c0, start, n):
 ################################################################################
 
 def test_po_attack_2blocks():
-    for i in xrange(6, 16):
+    for i in xrange(1, 16):
         po = PaddingOracle(msg_len=i)
         ctx = po.setup()
         msg = po_attack_2blocks(po, ctx)
