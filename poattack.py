@@ -17,7 +17,9 @@ def po_attack_2blocks(po, ctx):
         "cipher texts. Got {} block(s)!".format(len(ctx)/po.block_length)
     c0, c1 = list(split_into_blocks(ctx, po.block_length))
     msg = ''
-    # TODO: Implement padding oracle attack for 2 blocks of messages.
+
+    # Implementation of the procedure described in the following paper
+    # https://www.iacr.org/archive/eurocrypt2002/23320530/cbc02_e02d.pdf
 
     last_bytes = _po_attack_last_bytes(po, c0, c1)
     last_bytes = list(last_bytes)
@@ -59,6 +61,11 @@ def po_attack(po, ctx):
     ctx_blocks = list(split_into_blocks(ctx, po.block_length))
     nblocks = len(ctx_blocks)
     # TODO: Implement padding oracle attack for arbitrary length message.
+    msg = ''
+    for i in range(nblocks-1):
+        blocks_of_2 = ctx_blocks[i] + ctx_blocks[i+1]
+        curr_msg = po_attack_2blocks(po, blocks_of_2)
+    return msg
 
 def _po_attack_last_bytes(po, c0_, c1):
 
