@@ -1,7 +1,8 @@
-from fernet import Fernet
+from fernet import Fernet, InvalidToken
 import pytest
 import base64
 import os
+import time
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -10,6 +11,7 @@ from cryptography.hazmat.primitives import cmac
 class TestFernet:
 
     def test_Functionality(self):
+        # basic fernet 0x91 functionality test 
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -18,18 +20,8 @@ class TestFernet:
             msg = os.urandom(6)
             assert fernet.decrypt(fernet.encrypt(msg)) == msg
 
-    def test_Functionality_extensive(self):
-        key = Fernet.generate_key()
-        fernet = Fernet(key)
-
-        # decrypt(encrypt(msg)) == msg
-        for i in xrange(100):
-            for l in range(20):
-                msg = os.urandom(l)
-                assert fernet.decrypt(fernet.encrypt(msg)) == msg
-
     def test_xor(self):
-        # check xor functionality
+        # check xor for normal functionality
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -39,6 +31,7 @@ class TestFernet:
             assert(fernet._xor(x, y) == y) # xor of 0 and y == y
 
     def test_xor_bad_length(self):
+        # test xor function when given mismatching lengths
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -52,6 +45,7 @@ class TestFernet:
                 fernet._xor(x, y)
 
     def test_integer_bytes_conversion(self):
+        # test bytes to integer, then integer to bytes == original
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -60,6 +54,7 @@ class TestFernet:
             assert fernet._integer_to_bytes(fernet._bytes_to_integer(b)) == b
 
     def test_integer_bytes_conversion2(self):
+        # test integer to bytes, then bytes to integer == original
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -67,12 +62,14 @@ class TestFernet:
             assert fernet._bytes_to_integer(fernet._integer_to_bytes(i)) == i
 
     def test_big_integer(self):
+        # test _integer_to_bytes when given too big an integer
         key = Fernet.generate_key()
         fernet = Fernet(key)
         with pytest.raises(AssertionError) as e:
             fernet._integer_to_bytes(2**128)
 
     def test_empty_bytes(self):
+        # test _bytes_to_integer function when given empty bytes
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -81,6 +78,7 @@ class TestFernet:
             fernet._bytes_to_integer(b)
 
     def test_increment_integer(self):
+        # test the increment integer function
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -101,6 +99,7 @@ class TestFernet:
             fernet._increment_integer(-1)
 
     def test_AES_ECB(self):
+        # AES_ECB_128 test with RFC test vectors
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -111,6 +110,7 @@ class TestFernet:
         assert fernet._AES_ECB(fernet._integer_to_bytes(CONST_ZERO), KEY) == AES_128
 
     def test_CTR_test_vectors(self):
+        # test CTR encryption and decryption using official RFC test vectors
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -139,6 +139,7 @@ class TestFernet:
         assert fernet._AES_CTR_decrypt(CIPHERTEXT, IV, KEY) == PLAINTEXT
 
     def test_CTR_encrypt(self):
+        # test CTR encrypt function (encrypt with our API, decrypt with library)
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -147,14 +148,17 @@ class TestFernet:
             key = os.urandom(16)
             iv = os.urandom(16)
 
+            # encrypt with our API
             ct = fernet._AES_CTR_encrypt(data, iv, key)
 
+            # decrypt with library API
             cipher = Cipher(algorithms.AES(key), modes.CTR(iv), backend=default_backend())
             decryptor = cipher.decryptor()
             pt = decryptor.update(ct) + decryptor.finalize()
             assert data == pt
 
     def test_CTR_decrypt(self):
+        # test CTR decrypt function (encrypt with library API, decrypt with ours)
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -173,6 +177,7 @@ class TestFernet:
             assert data == pt
 
     def test_CTR_functionality(self):
+        # test CTR functionality (decrypt(encrypt(msg)) == msg)
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -185,6 +190,7 @@ class TestFernet:
             assert fernet._AES_CTR_decrypt(fernet._AES_CTR_encrypt(data, iv, key), iv, key) == data
 
     def test_subkey_generation(self):
+        # test subkey generation using RFC test vectors
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -197,6 +203,7 @@ class TestFernet:
         assert K1 == K1_ and K2 == K2_
 
     def test_subkey_gen_bad_length(self):
+        # test subkey generation function when given bad input length
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -205,6 +212,7 @@ class TestFernet:
             fernet._generate_subkey(KEY)
 
     def test_CMAC_test_vectors(self):
+        # test using official RFC AES_CMAC test vectors
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -231,6 +239,7 @@ class TestFernet:
         assert fernet._AES_CMAC_generate(K, M, LENGTH) == CMAC
 
     def test_CMAC_generate(self):
+        # test AES_CMAC generation
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -239,15 +248,19 @@ class TestFernet:
             M = os.urandom(i)
             K = os.urandom(16)
 
+            # use library's API to generate CMAC
             c = cmac.CMAC(algorithms.AES(K), backend=default_backend())
             c.update(M)
             lib_cmac = c.finalize()
 
+            # use our function to generate CMAC
             cmac_ = fernet._AES_CMAC_generate(K, M, len(M))
 
+            # verify library CMAC vs our CMAC
             assert cmac_ == lib_cmac
 
     def test_CMAC_verify(self):
+        # test CMAC verification function
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -256,6 +269,7 @@ class TestFernet:
             M = os.urandom(i)
             K = os.urandom(16)
 
+            # use library API generation
             c = cmac.CMAC(algorithms.AES(K), backend=default_backend())
             c.update(M)
             lib_cmac = c.finalize()
@@ -275,7 +289,54 @@ class TestFernet:
             except Exception:
                 raise Exception
 
-    
+    def test_Functionality_extensive(self):
+        # extensively test the decrpytion(encryption(msg)) == msg
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+
+        # decrypt(encrypt(msg)) == msg
+        for i in xrange(100):
+            for l in range(20):
+                msg = os.urandom(l)
+                assert fernet.decrypt(fernet.encrypt(msg)) == msg
+
+    def test_bad_version(self):
+        # test incorrect version of Fernet 0x91
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+
+        ct = fernet.encrypt('Secret message!')
+        ct = list(base64.urlsafe_b64decode(ct))     # decode ciphertext
+        ct[0] = b'\x00'                             # change version
+        ct = ''.join(ct)
+        ct = base64.urlsafe_b64encode(ct)           # encode ciphertext
+
+        with pytest.raises(InvalidToken) as e:
+            fernet.decrypt(ct)
+
+    def test_timeout(self):
+        # test exceeded time to live
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+
+        ct = fernet.encrypt('Another secret message!')
+        time.sleep(3)
+        with pytest.raises(InvalidToken) as e:
+            fernet.decrypt(ct, 2)
+
+    def test_bad_CMAC(self):
+        # test bad CMAC signature
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+
+        ct = fernet.encrypt('Aanother message!')
+        ct = list(base64.urlsafe_b64decode(ct))     # decode ciphertext
+        ct.append(b'\x00')                          # modify CMAC
+        ct = ''.join(ct)
+        ct = base64.urlsafe_b64encode(ct)           # encode ciphertext
+
+        with pytest.raises(InvalidToken) as e:
+            fernet.decrypt(ct)
 
 if __name__ == "__main__":
     a = TestFernet()

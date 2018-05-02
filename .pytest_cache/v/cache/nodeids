@@ -1,6 +1,5 @@
 [
   "test_fernet.py::TestFernet::()::test_Functionality", 
-  "test_fernet.py::TestFernet::()::test_Functionality_extensive", 
   "test_fernet.py::TestFernet::()::test_xor", 
   "test_fernet.py::TestFernet::()::test_xor_bad_length", 
   "test_fernet.py::TestFernet::()::test_integer_bytes_conversion", 
@@ -17,5 +16,9 @@
   "test_fernet.py::TestFernet::()::test_subkey_gen_bad_length", 
   "test_fernet.py::TestFernet::()::test_CMAC_test_vectors", 
   "test_fernet.py::TestFernet::()::test_CMAC_generate", 
-  "test_fernet.py::TestFernet::()::test_CMAC_verify"
+  "test_fernet.py::TestFernet::()::test_CMAC_verify", 
+  "test_fernet.py::TestFernet::()::test_Functionality_extensive", 
+  "test_fernet.py::TestFernet::()::test_bad_version", 
+  "test_fernet.py::TestFernet::()::test_timeout", 
+  "test_fernet.py::TestFernet::()::test_bad_CMAC"
 ]

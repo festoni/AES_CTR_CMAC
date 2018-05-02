@@ -12,7 +12,9 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 
 class InvalidToken(Exception):
-    pass
+    def __init__(self):
+        super(InvalidToken, self).__init__("Invalid Token. Wrong version, \
+                    exceeded time to live \or CMAC signature is incorrect.")
 
 class Fernet(object):
     def __init__(self, key, backend=None):
