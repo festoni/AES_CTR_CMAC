@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives import cmac
 class TestFernet:
 
     def test_Functionality(self):
-        # basic fernet 0x91 functionality test 
+        # basic fernet 0x91 functionality test
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
