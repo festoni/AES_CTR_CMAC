@@ -28,7 +28,6 @@ def po_attack_2blocks(po, ctx):
     while len(last_bytes) < len(c1):
         j = len(c0) - len(last_bytes)
 
-        # STEP 1 and 2
         r = list(os.urandom(len(c0[:j]))) + last_bytes
         for k in range(j, len(c0)):
             r[k] = chr(ord(r[k]) ^ (len(r)-1-j+2))
@@ -41,14 +40,11 @@ def po_attack_2blocks(po, ctx):
             if po.decrypt(c0 + ''.join(r_)+c1):
                 break
             i += 1
-        print i,
 
         res = chr(ord(r[j-1]) ^ i ^ (len(r) - 1 - j + 2))
         last_bytes.insert(0, res)
-    print
 
     msg = ''.join(last_bytes)
-    print(len(msg))
     return msg
 
 def po_attack(po, ctx):
@@ -82,10 +78,9 @@ def _po_attack_last_bytes(po, c0_, c1):
 
         # STEP 3
         if po.decrypt(r+c1):
-            print("Here")
             break
         i += 1
-    print(i)
+
     # STEP 4
     c0 = list(c0)
     c0[-1] = chr(ord(c0[-1]) ^ i)
@@ -96,7 +91,6 @@ def _po_attack_last_bytes(po, c0_, c1):
         r = c0[:]
         r[idx] = chr(ord(r[idx]) ^ 1)
         if not po.decrypt(c0_ + ''.join(r)+c1):
-            print("here2")
             return _xor_last_bytes(c0, idx, n)[-idx:]
     return chr(ord(c0[-1]) ^ 1)
 
