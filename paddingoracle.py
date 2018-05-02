@@ -69,4 +69,3 @@ class PaddingOracle(object):
             return True  # Successful decryption
         except ValueError:
             return False  # Error!!
-
