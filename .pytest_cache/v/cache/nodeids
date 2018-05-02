@@ -8,6 +8,14 @@
   "test_fernet.py::TestFernet::()::test_big_integer", 
   "test_fernet.py::TestFernet::()::test_empty_bytes", 
   "test_fernet.py::TestFernet::()::test_increment_integer", 
+  "test_fernet.py::TestFernet::()::test_AES_ECB", 
   "test_fernet.py::TestFernet::()::test_CTR_test_vectors", 
-  "test_fernet.py::TestFernet::()::test_CTR_functionality"
+  "test_fernet.py::TestFernet::()::test_CTR_encrypt", 
+  "test_fernet.py::TestFernet::()::test_CTR_decrypt", 
+  "test_fernet.py::TestFernet::()::test_CTR_functionality", 
+  "test_fernet.py::TestFernet::()::test_subkey_generation", 
+  "test_fernet.py::TestFernet::()::test_subkey_gen_bad_length", 
+  "test_fernet.py::TestFernet::()::test_CMAC_test_vectors", 
+  "test_fernet.py::TestFernet::()::test_CMAC_generate", 
+  "test_fernet.py::TestFernet::()::test_CMAC_verify"
 ]

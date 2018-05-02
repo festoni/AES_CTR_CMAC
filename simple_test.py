@@ -15,23 +15,23 @@ fernet = Fernet(key)
 # pt = fernet.decrypt(ct)
 # print(pt)
 
-c = 0
-for i in range(100):
-    for l in range(10):
-        data = os.urandom(l)
-        if fernet.decrypt(fernet.encrypt(data)) != data:
-            c += 1
-
-print 'SUCCESS:', 100*10 - c
-print 'FAIL:   ', c
+# c = 0
+# for i in range(100):
+#     for l in range(10):
+#         data = os.urandom(l)
+#         if fernet.decrypt(fernet.encrypt(data)) != data:
+#             c += 1
+#
+# print 'SUCCESS:', 100*10 - c
+# print 'FAIL:   ', c
 
 length = 64
 M1 = ''
-# M2 = '6bc1bee22e409f96e93d7e117393172a'.decode('hex')
+M2 = '6bc1bee22e409f96e93d7e117393172a'.decode('hex')
 M3 = '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411'.decode('hex')
 M4 = '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710'.decode('hex')
 K = '2b7e151628aed2a6abf7158809cf4f3c'.decode('hex')
-T = fernet._AES_CMAC_generate(K, M4, length)
+T = fernet._AES_CMAC_generate(K, M2, 16)
 print(T.encode('hex'))
 
 

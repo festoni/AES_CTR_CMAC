@@ -114,6 +114,8 @@ class Fernet(object):
         return ''.join(plaintext)
 
     def _generate_subkey(self, key):
+        assert len(key) == 16
+
         CONST_ZERO = 0x00000000000000000000000000000000
         CONST_RB = 0x00000000000000000000000000000087
 

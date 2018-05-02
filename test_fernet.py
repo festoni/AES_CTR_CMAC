@@ -3,6 +3,10 @@ import pytest
 import base64
 import os
 
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import cmac
+
 class TestFernet:
 
     def test_Functionality(self):
@@ -96,6 +100,16 @@ class TestFernet:
         with pytest.raises(AssertionError) as e:
             fernet._increment_integer(-1)
 
+    def test_AES_ECB(self):
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+
+        KEY = '2b7e151628aed2a6abf7158809cf4f3c'.decode('hex')
+        AES_128 = '7df76b0c1ab899b33e42f047b91b546f'.decode('hex')
+        CONST_ZERO = 0x00000000000000000000000000000000
+
+        assert fernet._AES_ECB(fernet._integer_to_bytes(CONST_ZERO), KEY) == AES_128
+
     def test_CTR_test_vectors(self):
         key = Fernet.generate_key()
         fernet = Fernet(key)
@@ -128,7 +142,19 @@ class TestFernet:
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
-    def test_CTR_functionality(self):
+        for i in range(20):
+            data = os.urandom(i)
+            key = os.urandom(16)
+            iv = os.urandom(16)
+
+            ct = fernet._AES_CTR_encrypt(data, iv, key)
+
+            cipher = Cipher(algorithms.AES(key), modes.CTR(iv), backend=default_backend())
+            decryptor = cipher.decryptor()
+            pt = decryptor.update(ct) + decryptor.finalize()
+            assert data == pt
+
+    def test_CTR_decrypt(self):
         key = Fernet.generate_key()
         fernet = Fernet(key)
 
@@ -137,9 +163,119 @@ class TestFernet:
             key = os.urandom(16)
             iv = os.urandom(16)
 
+            # encrypt with library APIs
+            cipher = Cipher(algorithms.AES(key), modes.CTR(iv), backend=default_backend())
+            encryptor = cipher.encryptor()
+            ct = encryptor.update(data) + encryptor.finalize()
+
+            # decrypt with our APIs
+            pt = fernet._AES_CTR_decrypt(ct, iv, key)
+            assert data == pt
+
+    def test_CTR_functionality(self):
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+
+        # test encrypt than decrypt gives back original message
+        for i in range(20):
+            data = os.urandom(i)
+            key = os.urandom(16)
+            iv = os.urandom(16)
+
             assert fernet._AES_CTR_decrypt(fernet._AES_CTR_encrypt(data, iv, key), iv, key) == data
 
+    def test_subkey_generation(self):
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
 
+        KEY = '2b7e151628aed2a6abf7158809cf4f3c'.decode('hex')
+        AES_128 = '7df76b0c1ab899b33e42f047b91b546f'.decode('hex')
+        K1 = 'fbeed618357133667c85e08f7236a8de'.decode('hex')
+        K2 = 'f7ddac306ae266ccf90bc11ee46d513b'.decode('hex')
+
+        K1_, K2_ = fernet._generate_subkey(KEY)
+        assert K1 == K1_ and K2 == K2_
+
+    def test_subkey_gen_bad_length(self):
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+
+        KEY = os.urandom(15)
+        with pytest.raises(AssertionError) as e:
+            fernet._generate_subkey(KEY)
+
+    def test_CMAC_test_vectors(self):
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+
+        K = '2b7e151628aed2a6abf7158809cf4f3c'.decode('hex')
+
+        LENGTH = 0
+        M = ''
+        CMAC = 'bb1d6929e95937287fa37d129b756746'.decode('hex')
+        assert fernet._AES_CMAC_generate(K, M, LENGTH) == CMAC
+
+        LENGTH = 16
+        M = '6bc1bee22e409f96e93d7e117393172a'.decode('hex')
+        CMAC = '070a16b46b4d4144f79bdd9dd04a287c'.decode('hex')
+        assert fernet._AES_CMAC_generate(K, M, LENGTH) == CMAC
+
+        LENGTH = 40
+        M = '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411'.decode('hex')
+        CMAC = 'dfa66747de9ae63030ca32611497c827'.decode('hex')
+        assert fernet._AES_CMAC_generate(K, M, LENGTH) == CMAC
+
+        LENGTH = 64
+        M = '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710'.decode('hex')
+        CMAC = '51f0bebf7e3b9d92fc49741779363cfe'.decode('hex')
+        assert fernet._AES_CMAC_generate(K, M, LENGTH) == CMAC
+
+    def test_CMAC_generate(self):
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+
+        # test against the cryptographi.io library APIs
+        for i in range(20):
+            M = os.urandom(i)
+            K = os.urandom(16)
+
+            c = cmac.CMAC(algorithms.AES(K), backend=default_backend())
+            c.update(M)
+            lib_cmac = c.finalize()
+
+            cmac_ = fernet._AES_CMAC_generate(K, M, len(M))
+
+            assert cmac_ == lib_cmac
+
+    def test_CMAC_verify(self):
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+
+        # test against the cryptography.io library APIs
+        for i in range(20):
+            M = os.urandom(i)
+            K = os.urandom(16)
+
+            c = cmac.CMAC(algorithms.AES(K), backend=default_backend())
+            c.update(M)
+            lib_cmac = c.finalize()
+
+            # verify a library generated cmac
+            assert fernet._AES_CMAC_verify(K, M, len(M), lib_cmac)
+
+            # verify against our own API
+            cmac_ = fernet._AES_CMAC_generate(K, M, len(M))
+            assert fernet._AES_CMAC_verify(K, M, len(M), cmac_)
+
+            # # library verify our generated cmac
+            c = cmac.CMAC(algorithms.AES(K), backend=default_backend())
+            c.update(M)
+            try:
+                c.verify(cmac_)
+            except Exception:
+                raise Exception
+
+    
 
 if __name__ == "__main__":
     a = TestFernet()
